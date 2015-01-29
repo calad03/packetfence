@@ -48,6 +48,7 @@ use pf::util;
 #
 our @authentication_sources = ();
 our @admin_authentication_sources = ();
+our @auth_authentication_sources = ();
 our %authentication_lookup;
 our $cached_authentication_config;
 our %guest_self_registration;
@@ -61,6 +62,7 @@ BEGIN {
       qw(
             @authentication_sources
             @admin_authentication_sources
+            @auth_authentication_sources
             availableAuthenticationSourceTypes
             newAuthenticationSource
             getAuthenticationSource
@@ -142,6 +144,7 @@ sub readAuthenticationConfigFile {
             -onfilereload => [ reload_authentication_config => sub {
                 @authentication_sources = ();
                 @admin_authentication_sources = ();
+                @auth_authentication_sources = ();
                 %authentication_lookup = ();
                 my ($config,$name) = @_;
                 my %cfg;
@@ -201,6 +204,7 @@ sub readAuthenticationConfigFile {
 
                 ### AUTHENTICATION LOOKUP ??? ###
                 $config->cacheForData->set("admin_authentication_sources", buildAdminAuthenticationSources());
+                $config->cacheForData->set("auth_authentication_sources", buildAuthAuthenticationSources());
             }],
             -oncachereload => [
                 on_cache_authentication_reload => sub {
@@ -216,6 +220,14 @@ sub readAuthenticationConfigFile {
                     my $admin_authentication_sources_ref = $config->fromCacheForDataUntainted("admin_authentication_sources");
                     if ( defined($admin_authentication_sources_ref) ) {
                         @admin_authentication_sources = @$admin_authentication_sources_ref;
+                        ### AUTHENTICATION LOOKUP ??? ###
+                    } else {
+                        $config->_callFileReloadCallbacks();
+                    }
+
+                    my $auth_authentication_sources_ref = $config->fromCacheForDataUntainted("auth_authentication_sources");
+                    if ( defined($auth_authentication_sources_ref) ) {
+                        @auth_authentication_sources = @$auth_authentication_sources_ref;
                         ### AUTHENTICATION LOOKUP ??? ###
                     } else {
                         $config->_callFileReloadCallbacks();
@@ -394,6 +406,16 @@ sub getAdminAuthenticationSources {
     return \@admin_authentication_sources;
 }
 
+=item getAuthAuthenticationSources
+
+Returns cached instances of pf::Authentication::Source for authentication sources builded for authentication purposes
+
+=cut
+
+sub getAuthAuthenticationSources {
+    return \@auth_authentication_sources;
+}
+
 =item buildAdminAuthenticationSources
 
 Builds an array of pf::Authentication::Source instances based on internal authentication sources containing only web admin access actions.
@@ -434,6 +456,52 @@ sub buildAdminAuthenticationSources {
     }
 
     return \@sources
+}
+
+=item buildAuthAuthenticationSources
+
+Builds an array of pf::Authentication::Source instances based on external authentication sources and internal authentication sources that doesn't contains any 'set_access_level' rules action.
+
+=cut
+
+sub buildAuthAuthenticationSources {
+    my @sources = ();
+
+    # Iterate through all the configured internal authencation sources
+    foreach my $originalSource ( @{ getInternalAuthenticationSources() } ) {
+        # Since the source (originalSource) is actually a reference, we want to clone and work on that cloned copy
+        my $clonedSource = clone($originalSource);
+
+        # We want to make sure the local SQL source is always available
+        push (@sources, $clonedSource) if $clonedSource->{'id'} eq 'local';
+
+        my @rules = ();
+        # Iterate through all configured rules of the authentication source
+        foreach my $rule ( @{ $clonedSource->{'rules'} } ) {
+            # Iterate through all configured actions of a rule in the authentication source
+            foreach my $action ( @{ $rule->{'actions'} } ) {
+                # We want to skip all 'set_access_level' action for authentication purposes
+                next if $action->{'type'} eq 'set_access_level';
+                push (@rules, $rule);
+            }
+        }
+
+        # If we have @rules defined and not empty, we consider this source as an 'auth' authentication source and we 
+        # recreate it with only specific rules
+        if ( @rules ) {
+            @{$clonedSource->{'rules'}} = ();
+            push (@{$clonedSource->{'rules'}}, @rules);
+            push (@sources, $clonedSource);
+        }
+    }
+
+    # Iterate through all the configured external authentication sources
+    # We doesn't modify anything in them, simply cloning them
+    foreach my $originalSource ( @{ getExternalAuthenticationSources() } ) {
+        push (@sources, clone($originalSource));
+    }
+
+    return \@sources;
 }
 
 =item deleteAuthenticationSource
