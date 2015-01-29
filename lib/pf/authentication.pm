@@ -47,6 +47,7 @@ use pf::util;
 #
 #
 our @authentication_sources = ();
+our @admin_authentication_sources = ();
 our %authentication_lookup;
 our $cached_authentication_config;
 our %guest_self_registration;
@@ -59,6 +60,7 @@ BEGIN {
     @EXPORT =
       qw(
             @authentication_sources
+            @admin_authentication_sources
             availableAuthenticationSourceTypes
             newAuthenticationSource
             getAuthenticationSource
@@ -139,6 +141,7 @@ sub readAuthenticationConfigFile {
             -file => $authentication_config_file,
             -onfilereload => [ reload_authentication_config => sub {
                 @authentication_sources = ();
+                @admin_authentication_sources = ();
                 %authentication_lookup = ();
                 my ($config,$name) = @_;
                 my %cfg;
@@ -195,6 +198,9 @@ sub readAuthenticationConfigFile {
                     $authentication_lookup{$source_id} = $current_source;
                 }
                 $config->cacheForData->set("authentication_sources",\@authentication_sources);
+
+                ### AUTHENTICATION LOOKUP ??? ###
+                $config->cacheForData->set("admin_authentication_sources", buildAdminAuthenticationSources());
             }],
             -oncachereload => [
                 on_cache_authentication_reload => sub {
@@ -206,6 +212,15 @@ sub readAuthenticationConfigFile {
                     } else {
                         $config->_callFileReloadCallbacks();
                     }
+
+                    my $admin_authentication_sources_ref = $config->fromCacheForDataUntainted("admin_authentication_sources");
+                    if ( defined($admin_authentication_sources_ref) ) {
+                        @admin_authentication_sources = @$admin_authentication_sources_ref;
+                        ### AUTHENTICATION LOOKUP ??? ###
+                    } else {
+                        $config->_callFileReloadCallbacks();
+                    }
+
                 },
             ],
             -onpostreload => [
@@ -369,13 +384,23 @@ sub getExternalAuthenticationSources {
     return \@sources;
 }
 
-=item getAdminInternalAuthenticationSources
+=item getAdminAuthenticationSources
 
-Returns instances of pf::Authentication::Source for internal sources containing only the configured rules to authenticate web admin
+Returns cached instances of pf::Authentication::Source for authentication sources builded for web admin access purposes
 
 =cut
 
-sub getAdminInternalAuthenticationSources {
+sub getAdminAuthenticationSources {
+    return \@admin_authentication_sources;
+}
+
+=item buildAdminAuthenticationSources
+
+Builds an array of pf::Authentication::Source instances based on internal authentication sources containing only web admin access actions.
+
+=cut
+
+sub buildAdminAuthenticationSources {
     my @sources = ();
 
     # Iterate through all configured internal authentication sources
@@ -398,7 +423,7 @@ sub getAdminInternalAuthenticationSources {
             }
         }
 
-        # If we have @rules defined and not empty, we consider this source as an admin authentication source and we 
+        # If we have @rules defined and not empty, we consider this source as an 'admin' authentication source and we 
         # recreate it with only specific rules
         if ( @rules ) {
             @{$clonedSource->{'rules'}} = ();
