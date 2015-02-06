@@ -80,8 +80,8 @@ PerlSwitches -I/usr/local/pf/html/pfappserver/lib
 PerlPostConfigRequire /usr/local/pf/lib/pf/web/aaa_modperl_require.pl
 PerlLoadModule pf::WebAPI
 
-AcceptMutex posixsem
-SSLMutex posixsem
+Mutex posixsem default
+Mutex posixsem ssl-cache
 <Perl>
 use pf::config qw();
 
