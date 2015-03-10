@@ -91,7 +91,8 @@ Requires: mod_perl, mod_qos
 requires: libapreq2
 Requires: dhcp
 Requires: memcached
-Requires: freeradius >= 2.2.5, freeradius-mysql, freeradius-perl, freeradius-ldap, freeradius-utils
+%{?el6:Requires: freeradius >= 2.2.5, freeradius-mysql, freeradius-perl, freeradius-ldap, freeradius-utils}
+%{?el7:Requires: freeradius < 3.0, freeradius-mysql, freeradius-perl, freeradius-ldap, freeradius-utils}
 Requires: make
 Requires: net-tools
 Requires: net-snmp >= 5.3.2.2
