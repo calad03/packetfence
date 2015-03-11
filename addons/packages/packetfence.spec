@@ -105,7 +105,7 @@ Requires(pre): %{real_name}-pfcmd-suid
 Requires: perl(Bit::Vector)
 Requires: perl(CGI::Session), perl(CGI::Session::Driver::chi) >= 1.0.3, perl(JSON::XS)
 %{?el6:Requires: perl(JSON)}
-%{?el7:Requires: perl(JSON) >= 2.90}
+%{?el7:Requires: perl(JSON) >= 2.90, perl-Switch}
 Requires: perl(Apache2::Request)
 Requires: perl(Apache::Session)
 Requires: perl(Apache::Session::Memcached)

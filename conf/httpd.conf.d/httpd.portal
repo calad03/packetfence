@@ -636,7 +636,14 @@ if (defined($management_network->{'Tip'}) && $management_network->{'Tip'} ne '')
                  },
              },
              '~ "/|/status"' => {
-                "Allow"             => "from all",
+                 IfVersion => {
+                    "< 2.4" => {
+                        "Allow" => "from all",
+                    },
+                    ">= 2.4" => {
+                        "Require"           => "all granted",
+                    },
+                 },
                 SetHandler          => 'modperl',
                 PerlResponseHandler => 'captiveportal',
              },
@@ -731,7 +738,14 @@ if (defined($management_network->{'Tip'}) && $management_network->{'Tip'} ne '')
                  },
              },
              '~ "/|/status"' => {
-                "Allow"             => "from all",
+                 IfVersion => {
+                    "< 2.4" => {
+                        "Allow" => "from all",
+                    },
+                    ">= 2.4" => {
+                        "Require"           => "all granted",
+                    },
+                 },
                 SetHandler          => 'modperl',
                 PerlResponseHandler => 'captiveportal',
              },
