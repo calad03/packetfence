@@ -254,6 +254,7 @@ Requires: perl(Hash::Merge)
 Requires: perl(IO::Socket::INET6)
 Requires: perl(IO::Interface)
 Requires: perl(Time::Period)
+Requires: perl(Linux::Distribution)
 # configuration-wizard
 Requires: iproute, vconfig
 
