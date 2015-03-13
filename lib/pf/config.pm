@@ -111,9 +111,9 @@ our (
 #provisioning.conf
     %ConfigProvisioning,
 #scan.conf
-    %ConfigScan, $cached_scan,
+    %ConfigScan,
 #wmi.conf
-    %ConfigWmi, $cached_wmi,
+    %ConfigWmi,
 );
 
 BEGIN {

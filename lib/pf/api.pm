@@ -628,7 +628,7 @@ sub trigger_scan : Public {
 
     my $logger = pf::log::get_logger();
     # post_registration (production vlan)
-    if ($postdata{'net_type'} =~ /management|^dhcp-?listener$|managed/i) {
+    if (pf::util::is_prod_interface($postdata{'net_type'})) {
         my $top_violation = pf::violation::violation_view_top($postdata{'mac'});
         # get violation id
         my $vid = $top_violation->{'vid'};
@@ -660,7 +660,7 @@ sub close_violation : Public {
     my ($class, %postdata )  = @_;
     my @require = qw(mac vid);
     my @found = grep {exists $postdata{$_}} @require;
-    return unless @require == @found;
+    return unless validate_argv(\@require,  \@found);
 
     my $logger = pf::log::get_logger();
 
@@ -674,6 +674,7 @@ sub close_violation : Public {
 =head2 dynamic_register_node
 
 Register a node based on mac username
+Per example fetch the current user connected on a device through a WMI scan and register it.
 
 =cut
 
@@ -681,7 +682,7 @@ sub dynamic_register_node : Public {
     my ($class, %postdata )  = @_;
     my @require = qw(mac username);
     my @found = grep {exists $postdata{$_}} @require;
-    return unless @require == @found;
+    return unless validate_argv(\@require,  \@found);
 
     my $logger = pf::log::get_logger();
     my $profile = pf::Portal::ProfileFactory->instantiate($postdata{'mac'});
@@ -697,7 +698,7 @@ sub dynamic_register_node : Public {
     };
 
     my $source;
-    my $role = &pf::authentication::match([@sources], $params, $Actions::SET_ROLE, $source);
+    my $role = &pf::authentication::match([@sources], $params, $Actions::SET_ROLE, \$source);
     #Compute autoreg if we use autoreg
     my $value = &pf::authentication::match([@sources], $params, $Actions::SET_ACCESS_DURATION);
     if (defined $value) {
@@ -706,6 +707,7 @@ sub dynamic_register_node : Public {
     }
     else {
         $value = &pf::authentication::match([@sources], $params, $Actions::SET_UNREG_DATE);
+        $value = pf::config::dynamic_unreg_date($value);
     }
     if (defined $value) {
         my %info = (
