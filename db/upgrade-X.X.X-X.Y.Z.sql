@@ -98,3 +98,9 @@ UPDATE `node` SET pid = 'default' WHERE status = 'unreg' AND pid = 'admin';
 
 ALTER TABLE node ADD dhcp_vendor VARCHAR(255) AFTER dhcp_fingerprint;
 ALTER TABLE node ADD device_type VARCHAR(255) AFTER dhcp_vendor;
+
+-- Alter Class for external_command
+--
+
+ALTER TABLE class
+    ADD `external_command` varchar(255) DEFAULT NULL;
