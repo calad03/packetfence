@@ -384,6 +384,9 @@ done
 %if 0%{?el6}
 %{__install} -D -m0755 packetfence.init $RPM_BUILD_ROOT%{_initrddir}/packetfence
 %endif
+%if 0%{?el7}
+cp -r addons/systemd/packetfence.service $RPM_BUILD_ROOT/usr/lib/systemd/system/packetfence.service
+%endif
 # creating path components that are no longer in the tarball since we moved to git
 %{__install} -d $RPM_BUILD_ROOT/usr/local/pf/addons
 %{__install} -d -m2775 $RPM_BUILD_ROOT/usr/local/pf/conf
@@ -460,18 +463,14 @@ cp -r UPGRADE.old $RPM_BUILD_ROOT/usr/local/pf/
 %if 0%{?el6}
 %{__install} -D -m0755 addons/pfconfig/pfconfig.init $RPM_BUILD_ROOT%{_initrddir}/packetfence-config
 %endif
+%if 0%{?el7}
+cp -r addons/systemd/pfconfig.service $RPM_BUILD_ROOT/usr/lib/systemd/system/
+%endif
 #end pfconfig
 # logfiles
 for LOG in %logfiles; do
     touch $RPM_BUILD_ROOT%logdir/$LOG
 done
-#systemd packetfence and pfconfig for rhel7
-%if 0%{?el7}
-cp -r addons/systemd/packetfence.service /usr/lib/systemd/system/
-cp -r addons/systemd/pfconfig.service /usr/lib/systemd/system/
-systemctl enable packetfence
-systemctl enable pfconfig 
-%endif
 #start create symlinks
 curdir=`pwd`
 
@@ -560,7 +559,12 @@ fi
 
 %post -n %{real_name}
 echo "Adding PacketFence startup script"
+%if 0%{?el6}
 /sbin/chkconfig --add packetfence
+%endif
+%if 0%{?el7}
+/sbin/systemctl enable packetfence
+%endif
 
 #Check if log files exist and create them with the correct owner
 for fic_log in packetfence.log catalyst.log access_log error_log admin_access_log admin_error_log
@@ -655,8 +659,12 @@ echo "Adding PacketFence remote ARP Sensor startup script"
 
 %post -n %{real_name}-config
 echo "Adding PacketFence config startup script"
+%if 0%{?el6}
 /sbin/chkconfig --add packetfence-config
-
+%endif
+%if 0%{?el7}
+/sbin/systemd enable pfconfig
+%endif
 %preun -n %{real_name}
 if [ $1 -eq 0 ] ; then
         /sbin/service packetfence stop &>/dev/null || :
@@ -721,7 +729,12 @@ fi
 %files -n %{real_name}
 
 %defattr(-, pf, pf)
+%if 0%{?el6}
 %attr(0755, root, root) %{_initrddir}/packetfence
+%endif
+%if 0%{?el7}
+%attr(0755, root, root) /usr/lib/systemd/system/packetfence.service
+%endif
 %config                 %{_sysconfdir}/logrotate.d/packetfence
 
 %dir                    /usr/local/pf
@@ -777,7 +790,10 @@ fi
 %config(noreplace)      /usr/local/pf/conf/locale/de/LC_MESSAGES/packetfence.po
 %config(noreplace)      /usr/local/pf/conf/locale/de/LC_MESSAGES/packetfence.mo
 %dir                    /usr/local/pf/conf/locale/en
-%dir                    /usr/local/pf/conf/locale/en/LC_MESSAGES
+%dir                    /usr/local/pf/conf/%endif
+%if 0%{?el7}
+%attr(0755, root, root) /usr/lib/systemd/system/pfconfig.service
+%endiflocale/en/LC_MESSAGES
 %config(noreplace)      /usr/local/pf/conf/locale/en/LC_MESSAGES/packetfence.po
 %config(noreplace)      /usr/local/pf/conf/locale/en/LC_MESSAGES/packetfence.mo
 %dir                    /usr/local/pf/conf/locale/es
@@ -1086,7 +1102,12 @@ fi
 %attr(6755, root, root) /usr/local/pf/bin/pfcmd
 
 %files -n %{real_name}-config
+%if 0%{?el6}
 %attr(0755, root, root) %{_initrddir}/packetfence-config
+%endif
+%if 0%{?el7}
+%attr(0755, root, root) /usr/lib/systemd/system/pfconfig.service
+%endif
 %dir                    /usr/local/pf
 %dir                    /usr/local/pf/lib
 %dir                    /usr/local/pf/lib/pfconfig
